@@ -264,29 +264,21 @@ defaults delete com.cmuxterm.app cmuxDebugBG
 
 ## Proposed fix (patch only, not built)
 
-`proposed-fix.patch` in this directory, against `b685a275c`, changes
-`Sources/GhosttyTerminalView.swift` only:
-
-1. On `CONFIG_CHANGE`, keep `surfaceView.backgroundColor` and just repaint, so
-   cmux's visible color matches ghostty's terminal state (which keeps the
-   override, §5).
-2. On a background `COLOR_CHANGE`, store `nil` when the new color equals the
-   current default. Ghostty reports OSC 111 as a change to the default color
-   (§2); without this, a later theme switch would leave the old default pinned
-   as an "override". I infer this is why the clear in step 1 was added.
+`proposed-fix.patch` in this directory, against `b685a275c`, deletes one
+block: the 12 lines in the `GHOSTTY_ACTION_CONFIG_CHANGE` case of
+`Sources/GhosttyTerminalView.swift` (`:3416-3427`) that clear
+`surfaceView.backgroundColor`. Nothing else changes. With the block gone, a
+config change leaves the OSC 11 color in place, as ghostty does (§5).
 
 Caveats:
 
-- An OSC 11 that sets exactly the theme default is treated as "no override",
-  so after a theme change that pane follows the new theme. That matches what
-  it showed before the change.
-- A cleaner fix is to have ghostty mark resets in `ghostty_action_color_change_s`
-  (a fork change), so cmux does not compare colors.
-- This addresses rank 1 only. It does nothing for hypothesis 2. If test C shows
-  drops, the fix is outside cmux: send the OSC through the program that owns
-  the pane, or accept retries.
-- Not compiled; no tests added. A regression test would drive a
-  `CONFIG_CHANGE` after a `COLOR_CHANGE` and assert the host-layer color.
+- OSC 111 (reset) reaches cmux as a change to the current default color (§2).
+  Before this patch, the next config change cleared that stored default, so
+  the pane followed a later theme switch. With the patch, a pane that received
+  OSC 111 keeps the old default color after a theme switch. Fixing that is a
+  separate change.
+- This addresses rank 1 only. It does nothing for hypothesis 2.
+- Not compiled; no tests added.
 
 ## Open questions
 

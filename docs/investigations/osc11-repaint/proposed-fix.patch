@@ -1,21 +1,8 @@
 diff --git a/Sources/GhosttyTerminalView.swift b/Sources/GhosttyTerminalView.swift
-index a603d9c7838..376e6ba11e6 100644
+index a603d9c7838..8bec6c3ccc6 100644
 --- a/Sources/GhosttyTerminalView.swift
 +++ b/Sources/GhosttyTerminalView.swift
-@@ -3398,7 +3398,11 @@ class GhosttyApp {
-                     )
-                 }
-                 DispatchQueue.main.async { [self] in
--                    surfaceView.backgroundColor = newColor
-+                    // Ghostty reports OSC 111 (reset) as a color change carrying the
-+                    // default color. Treat a change to the default as "no override" so
-+                    // a later theme change is not pinned to the old default.
-+                    surfaceView.backgroundColor =
-+                        newColor.hexString() == defaultBackgroundColor.hexString() ? nil : newColor
-                     surfaceView.applySurfaceBackground()
-                     if backgroundLogEnabled {
-                         logBackground("OSC background change tab=\(surfaceView.tabId?.uuidString ?? "unknown") color=\(surfaceView.backgroundColor?.description ?? "nil")")
-@@ -3413,17 +3417,14 @@ class GhosttyApp {
+@@ -3413,18 +3413,6 @@ class GhosttyApp {
              return true
          case GHOSTTY_ACTION_CONFIG_CHANGE:
              let configChangeSurfaceID = surfaceView.terminalSurface?.id
@@ -30,14 +17,7 @@ index a603d9c7838..376e6ba11e6 100644
 -                    surfaceView.applySurfaceBackground()
 -                    surfaceView.applyWindowBackgroundIfActive()
 -                }
-+            // Keep any OSC 11 override. Ghostty's Termio.changeConfig only replaces
-+            // the default background and leaves the terminal's override in place,
-+            // so clearing it here made the pane show the default while the terminal
-+            // still held the OSC color. Repaint so the new default applies when
-+            // there is no override.
-+            DispatchQueue.main.async {
-+                surfaceView.applySurfaceBackground()
-+                surfaceView.applyWindowBackgroundIfActive()
-             }
+-            }
              let effectiveConfigChangeColorScheme = effectiveTerminalColorSchemePreference
              synchronizeGhosttyRuntimeColorScheme(
+                 effectiveConfigChangeColorScheme,
